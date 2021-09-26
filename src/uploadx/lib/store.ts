@@ -1,22 +1,43 @@
 class Store {
-  prefix = 'UPLOADX-V3.0-';
+  prefix = 'UPLOADX^4.2';
+  private ttl = 1000 * 60 * 60 * 24;
+  private delimiter = ', expires at ';
 
   set(key: string, value: string): void {
-    localStorage.setItem(this.prefix + key, value);
+    this.ttl &&
+      localStorage.setItem(this.prefix + key, value + this.delimiter + (Date.now() + this.ttl));
   }
 
   get(key: string): string | null {
-    return localStorage.getItem(this.prefix + key);
+    const item = localStorage.getItem(this.prefix + key);
+    if (item) {
+      const [value, timestamp] = item.split(this.delimiter);
+      return value && timestamp ? value : null;
+    }
+    return null;
   }
 
   delete(key: string): void {
     localStorage.removeItem(this.prefix + key);
   }
 
-  clear(): void {
-    Object.keys(localStorage).forEach(
-      key => key.indexOf(this.prefix) === 0 && localStorage.removeItem(key)
-    );
+  clear(maxAgeHours = 0): void {
+    this.ttl = maxAgeHours * 1000 * 60 * 60;
+    this.getAllKeys().forEach(key => {
+      const item = localStorage.getItem(this.prefix + key);
+      if (item && maxAgeHours) {
+        const [, expiresAt] = item.split(this.delimiter);
+        if (Date.now() > Number(expiresAt)) {
+          localStorage.removeItem(key);
+        }
+      } else {
+        localStorage.removeItem(key);
+      }
+    });
+  }
+
+  private getAllKeys(): string[] {
+    return Object.keys(localStorage).filter(key => key.indexOf(this.prefix) === 0);
   }
 }
 
