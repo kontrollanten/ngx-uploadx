@@ -1,6 +1,7 @@
 import { Ajax } from './ajax';
 import { Canceler } from './canceler';
 import { RetryConfig } from './retry-handler';
+import { Store } from './store';
 import { Uploader } from './uploader';
 
 export type Primitive = null | boolean | number | string;
@@ -131,7 +132,8 @@ export type UploaderClass = new (
   file: File,
   options: UploaderOptions,
   stateChange: (evt: UploadState) => void,
-  ajax: Ajax
+  ajax: Ajax,
+  store: Store<string>
 ) => Uploader;
 
 export type Writable<T> = { -readonly [K in keyof T]: T[K] };

@@ -12,7 +12,7 @@ import {
   UploadxFactoryOptions,
   UploadxOptions
 } from './options';
-import { store } from './store';
+import { Store } from './store';
 import { Uploader } from './uploader';
 import { isIOS, pick } from './utils';
 
@@ -46,7 +46,8 @@ export class UploadxService implements OnDestroy {
     @Inject(UPLOADX_FACTORY_OPTIONS) defaults: UploadxFactoryOptions,
     @Inject(UPLOADX_AJAX) readonly ajax: Ajax,
     private ngZone: NgZone,
-    private idService: IdService
+    private idService: IdService,
+    private store: Store<string>
   ) {
     this.options = Object.assign({}, defaults, options);
     if (typeof window !== 'undefined') {
@@ -103,9 +104,8 @@ export class UploadxService implements OnDestroy {
    */
   handleFiles(files: FileList | File | File[], options = {} as UploadxOptions): void {
     const instanceOptions: UploadxFactoryOptions = { ...this.options, ...options };
-    store.clear(
-      (instanceOptions.storeIncompleteUploadUrl || 0) && instanceOptions.storeIncompleteHours
-    );
+    this.store.ttl =
+      (instanceOptions.storeIncompleteUploadUrl || 0) && instanceOptions.storeIncompleteHours;
     this.options.concurrency = instanceOptions.concurrency;
     isIOS() && iOSPatch(instanceOptions);
     ('name' in files ? [files] : Array.from(files)).forEach(file =>
@@ -153,7 +153,13 @@ export class UploadxService implements OnDestroy {
   };
 
   private async addUploaderInstance(file: File, options: UploadxFactoryOptions): Promise<void> {
-    const uploader = new options.uploaderClass(file, options, this.stateChange, this.ajax);
+    const uploader = new options.uploaderClass(
+      file,
+      options,
+      this.stateChange,
+      this.ajax,
+      this.store
+    );
     (uploader.uploadId as Writable<string>) = await this.idService.generateId(uploader);
     this.queue.push(uploader);
     uploader.status = options.autoUpload && onLine() ? 'queue' : 'added';

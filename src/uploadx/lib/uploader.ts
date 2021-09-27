@@ -15,7 +15,7 @@ import {
   UploadxControlEvent
 } from './interfaces';
 import { ErrorType, RetryHandler } from './retry-handler';
-import { store } from './store';
+import { Store } from './store';
 import { DynamicChunk, isNumber, unfunc } from './utils';
 
 const actionToStatusMap: { [K in UploadAction]: UploadStatus } = {
@@ -61,11 +61,11 @@ export abstract class Uploader implements UploadState {
   private _url = '';
 
   get url(): string {
-    return this._url || store.get(this.uploadId) || '';
+    return this._url || this.store.get(this.uploadId) || '';
   }
 
   set url(value: string) {
-    this._url !== value && store.set(this.uploadId, value);
+    this._url !== value && this.store.set(this.uploadId, value);
     this._url = value;
   }
 
@@ -92,7 +92,8 @@ export abstract class Uploader implements UploadState {
     readonly file: File,
     readonly options: Readonly<UploaderOptions>,
     readonly stateChange: (evt: UploadState) => void,
-    readonly ajax: Ajax
+    readonly ajax: Ajax,
+    readonly store: Store<string>
   ) {
     this.retry = new RetryHandler(options.retryConfig);
     this.name = file.name;
@@ -261,7 +262,7 @@ export abstract class Uploader implements UploadState {
     return { start, end, body };
   }
 
-  private cleanup = () => store.delete(this.uploadId);
+  private cleanup = () => this.store.delete(this.uploadId);
 
   private onProgress(): (evt: ProgressEvent) => void {
     let throttle: ReturnType<typeof setTimeout> | undefined;
